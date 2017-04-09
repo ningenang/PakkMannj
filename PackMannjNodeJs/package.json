@@ -1,0 +1,12 @@
+{
+  "name": "pack-mannj-node-js",
+  "version": "0.0.0",
+  "description": "PackMannjNodeJs",
+  "main": "app.js",
+  "author": {
+    "name": "Mats"
+  },
+  "dependencies": {
+    "keypress": "^0.2.1"
+  }
+}
