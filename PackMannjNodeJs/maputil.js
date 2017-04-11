@@ -1,33 +1,33 @@
 
 
-var MapUtil = function MapUtil() {
+var _this = this;
 
-	return {
+module.exports.tileTypeEnum = Object.freeze({
+	FLOOR: '_',
+	DOOR: '-',
+	WALL: '|',
+	PELLET: '.',
+	SUPER_PELLET: 'o'
+	//TODO?: add type for enemies (dangerous, non-dangerous
+});
 
-		//Object.freeze prevents other code from changing the enum
-		tileTypeEnum: Object.freeze({
-			FLOOR: '_',
-			DOOR: '-',
-			WALL: '|',
-			PELLET: '.',
-			SUPER_PELLET: 'o',
-		}),
+module.exports.createNeighbourTiles = function (coord) {
+	return [
+		{ x: coord.x - 1,	y: coord.y },		//left
+		{ x: coord.x + 1,	y: coord.y },		//right
+		{ x: coord.x,		y: coord.y + 1 },	//down
+		{ x: coord.x,		y: coord.y - 1 }	//up
+	];
+}
 
-		isWalkable: function (map, coord) {
-			//check that coordinate is within map bounds
-			if (coord.x > -1 && coord.y > -1 &&
-				map.width > coord.x && map.height > coord.y) {
-				//if not a wall => walkable
-				return map.content[coord.y][coord.x] !== MapUtil.tileTypeEnum.WALL;
 
-			} else {
-				console.error(`coordinate (${coord.x}, ${coord.y}) outside bounds (${map.width}, ${map.height})`);
-			}
+module.exports.isWalkable = function (map, coord) {
+	//check that coordinate is within map bounds
+	if (coord.x > -1 && coord.y > -1 &&
+		map.width > coord.x && map.height > coord.y) {
+		//if not a wall => walkable
+		return map.content[coord.y][coord.x] !== _this.tileTypeEnum.WALL;
+	}
 
-			return false;
-		},
-	};
+	return false;
 };
-
-
-module.exports = MapUtil;

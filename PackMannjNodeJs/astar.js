@@ -1,27 +1,38 @@
 
-var _navigator = require('./navigator');
-var _mapUtil = require('./maputil');
+var _ = require('underscore');
+var mapUtil = require('./maputil');
 
 var Astar = function Astar() {
 
-	var navigator = new _navigator();
-	var mapUtil = new _mapUtil();
+	//calculate simple Manhattan distance as the heuristic
+	function heuristic(coord, target) {
+		var dx = Math.abs(coord.x - target.x);
+		var dy = Math.abs(coord.y - target.y);
 
+		//assume movement cost of 1
+		return 1 * (dx + dy);
+	}; 
+		
 	return {
 
-		getNextMove: function (map, coordStart, target) {
+		getNextTile: function (map, coordStart, target) {
 
-			console.log(`find next move from (${coordStart.x}, ${coordStart.y}) to (${target.x}, ${target.y})`);
+			if (target === undefined || target === null) {
+				console.error('getNextTile: target cannot be null or undefined');
+				return;
+			}
+
+			console.log(`getNextTile: find next move from (${coordStart.x}, ${coordStart.y}) to (${target.x}, ${target.y})`);
 
 			coordStart.cost = 0;
 
-			var frontier = [coordStart];			
+			var frontier = [coordStart];
 			var closed = [];
 
 			var current = {};
 
 			while (frontier.length > 0) {
-				
+
 				var lowestValue = frontier[0].cost;
 				var ties = [frontier[0]];
 				//find the x tiles with the lowest cost
@@ -32,32 +43,27 @@ var Astar = function Astar() {
 						break;
 				}
 
-				if (ties.length === 1)
-				{
+				if (ties.length === 1) {
 					current = frontier.shift();
-				} else
-				{
+				} else {
 					//select randomly among tiles if more than one with lowest cost
 					var rndIndex = Math.floor(Math.random() * ties.length);
 					current = frontier.splice(rndIndex, 1)[0];
 				}
-			
+
 				if (current.x === target.x && current.y === target.y)
 					break;
 
 				closed.push(current);
 
-				//process neighbours
-				[
-					{ x: current.x - 1, y: current.y }, //left
-					{ x: current.x + 1, y: current.y }, //right
-					{ x: current.x, y: current + 1 }, //down
-					{ x: current.x, y: current - 1 } //up
-				]
+
+				mapUtil
+					//process neighbours
+					.createNeighbourTiles(current)
 					//check all neighbours that are not already processed
 					//must also be within map bounds and walkable
 					.filter(function (neighbour) {
-						return closed.indexOf(neighbour) === -1
+						return _.findWhere(closed, { x: neighbour.x, y: neighbour.y }) === undefined
 							&& mapUtil.isWalkable(map, neighbour);
 					})
 					.forEach(function (neighbour) {
@@ -66,19 +72,21 @@ var Astar = function Astar() {
 
 						//total cost of moving to neighbour from starting point
 						//f(n) = g(n) + h(n)
-						var f = (current.cost + 1) + navigator.heuristic(neighbour);
+						var f = (current.cost + 1) + heuristic(neighbour, target);
 
-						var existingIndex = open.indexOf(neighbour);
-						
+						var existingIndex = frontier.findIndex(function (elem) {
+							return elem.x === neighbour.x && elem.y === neighbour.y;
+						});
+
 						if (existingIndex > -1) {
-							if (open[existingIndex].cost > f) {
-								open[existingIndex].cost = f
-								open[existingIndex].parent = current;
+							if (frontier[existingIndex].cost > f) {
+								frontier[existingIndex].cost = f
+								frontier[existingIndex].parent = current;
 							}
 						} else {
 							neighbour.cost = f;
 							neighbour.parent = current;
-							open.push(neighbour);
+							frontier.push(neighbour);
 						}
 					});
 
@@ -86,15 +94,18 @@ var Astar = function Astar() {
 
 			}
 
-			if (current === target)
-			{
-				console.log('printing path:');
-				while (current.parent !== null)
-				{
-					console.log(current); //print path in reverse
+			var moveToTile;
+			if (current.x === target.x && current.y === target.y) {
+				while (current !== undefined && current.parent !== undefined) {
+					moveToTile = current;
 					current = current.parent;
-				} 
+				}
+
+				if(moveToTile !== undefined)
+					console.log(`getNextTile: next tile (${moveToTile.x}, ${moveToTile.y})`)
 			}
+
+			return moveToTile;
 		}
 	}
 };

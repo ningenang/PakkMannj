@@ -1,21 +1,22 @@
 ﻿
-
-var _mapUtil = require('./maputil');
+var _ = require('underscore');
+var shuffle = require('shuffle-array');
+var mapUtil = require('./maputil');
 
 var Navigator = function Navigator() {
-
-	var mapUtil = new _mapUtil();
 
 	var targets = {
 		superPellets: [],
 		pellets: []
 	};
 
-	var currentTarget = {};
-
 	return {
 
 		updateTargets: function (map) {
+
+			superPellets = [];
+			pellets = [];
+
 			map.content.forEach(function (row, rowIndex) {
 				for (var i = 0; i < row.length; i++) {
 					if (row[i] === mapUtil.tileTypeEnum.SUPER_PELLET) {
@@ -34,29 +35,50 @@ var Navigator = function Navigator() {
 							}
 						);
 					}
-
 				}
 			});
 		},
 
-		pickTarget: function () {
+		pickTarget: function (currentTile, currentTarget) {
+
+			var updateTarget =
+				currentTarget === null || currentTarget === undefined || //no target set, or
+				(currentTile.x === currentTarget.x && currentTile.y === currentTarget.y) //target reached;
+
+			if (!updateTarget)
+				return currentTarget;
+
 			//just for testing
 			if (targets.superPellets.length > 0)
-				currentTarget = targets.superPellets[Math.floor(Math.random() * targets.superPellets.length)];
+				return targets.superPellets[Math.floor(Math.random() * targets.superPellets.length)];
 			else if (targets.pellets.length > 0)
-				currentTarget = targets.pellets[Math.floor(Math.random() * targets.pellets.length)];
-			return currentTarget;
+				return targets.pellets[Math.floor(Math.random() * targets.pellets.length)];
+
+			return null;
 		},
 
-		//calculate simple Manhattan distance as the heuristic
-		heuristic: function (coord) {
-			var dx = Math.abs(coord.x - currentTarget.x);
-			var dy = Math.abs(coord.y - currentTarget.y);
+		translateToMoveCommand: function (currentTile, targetTile) {
+			if (targetTile.x > currentTile.x)
+				return 'RIGHT';
+			else if (targetTile.x < currentTile.x)
+				return 'LEFT';
+			else if (targetTile.y > currentTile.y)
+				return 'DOWN';
+			else if (targetTile.y < currentTile.y)
+				return 'UP';
+		},
 
-			//assume movement cost of 1
-			return 1 * (dx + dy);
+		getRandomValidMove: function (map, currentTile) {
+			
+			var walkableNeighbours = _.filter(
+				mapUtil.createNeighbourTiles(currentTile), function (elem) {
+					return mapUtil.isWalkable(map, elem);
+				});
+
+			var randomNeighbour = _.first(shuffle(walkableNeighbours));
+
+			return Navigator.translateToMoveCommand(currentTile, randomNeighbour);
 		}
-
 	}
 };
 
