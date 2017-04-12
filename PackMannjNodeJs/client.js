@@ -15,19 +15,25 @@ var Client = function (host, port, botName) {
 	});
 
 	_this._client.on('data', function (buffer) {
-		var data = JSON.parse(buffer.toString('utf8'));
 
-		switch (data['messagetype']) {
-			case 'welcome':
-			case 'stateupdate':
-			case 'dead':
-			case 'endofround':
-			case 'startofround':
-				_this.emit(data['messagetype'], data);
-				break;
-			default:
-				console.error('Unrecognized message type: ' + data['messagetype']);
+		try {
+			var data = JSON.parse(buffer.toString('utf8'));
+
+			switch (data['messagetype']) {
+				case 'welcome':
+				case 'stateupdate':
+				case 'dead':
+				case 'endofround':
+				case 'startofround':
+					_this.emit(data['messagetype'], data);
+					break;
+				default:
+					console.error('Unrecognized message type: ' + data['messagetype']);
+			}
+		} catch (e) {
+			console.error(`unable to parse data: ${e.message}`);
 		}
+		
 	});
 };
 

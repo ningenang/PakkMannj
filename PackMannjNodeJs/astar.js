@@ -11,7 +11,11 @@ var Astar = function Astar() {
 
 		//assume movement cost of 1
 		return 1 * (dx + dy);
-	}; 
+	};
+
+	function moveCost(map, targetTile) {
+		return 1;
+	};
 		
 	return {
 
@@ -72,7 +76,7 @@ var Astar = function Astar() {
 
 						//total cost of moving to neighbour from starting point
 						//f(n) = g(n) + h(n)
-						var f = (current.cost + 1) + heuristic(neighbour, target);
+						var f = (current.cost + moveCost(map, neighbour)) + heuristic(neighbour, target);
 
 						var existingIndex = frontier.findIndex(function (elem) {
 							return elem.x === neighbour.x && elem.y === neighbour.y;

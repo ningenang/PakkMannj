@@ -9,13 +9,13 @@ var Navigator = function Navigator() {
 		superPellets: [],
 		pellets: []
 	};
-
+	
 	return {
 
 		updateTargets: function (map) {
 
-			superPellets = [];
-			pellets = [];
+			targets.superPellets = [];
+			targets.pellets = [];
 
 			map.content.forEach(function (row, rowIndex) {
 				for (var i = 0; i < row.length; i++) {
@@ -48,6 +48,8 @@ var Navigator = function Navigator() {
 			if (!updateTarget)
 				return currentTarget;
 
+			console.dir(targets.superPellets);
+
 			//just for testing
 			if (targets.superPellets.length > 0)
 				return targets.superPellets[Math.floor(Math.random() * targets.superPellets.length)];
@@ -77,7 +79,7 @@ var Navigator = function Navigator() {
 
 			var randomNeighbour = _.first(shuffle(walkableNeighbours));
 
-			return Navigator.translateToMoveCommand(currentTile, randomNeighbour);
+			return this.translateToMoveCommand(currentTile, randomNeighbour);
 		}
 	}
 };

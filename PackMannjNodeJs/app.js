@@ -26,7 +26,7 @@
 		}
 		else {
 			console.log('sendNextMove: unable to determine next tile! choosing direction at random!');
-			nextMove = navigator.getRandomValidMove();
+			nextMove = navigator.getRandomValidMove(map, currentTile);
 		}
 
 		client.sendString(nextMove);
