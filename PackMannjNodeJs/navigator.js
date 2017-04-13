@@ -39,23 +39,92 @@ var Navigator = function Navigator() {
 			});
 		},
 
-		pickTarget: function (currentTile, currentTarget) {
 
-			var updateTarget =
-				currentTarget === null || currentTarget === undefined || //no target set, or
-				(currentTile.x === currentTarget.x && currentTile.y === currentTarget.y) //target reached;
+		/*
+		expects an object in the current form:
+			arg = {
+				me: {
+					x: 0,
+					y: 0,
+					score: 0,
+					isdangerous: false
+				},
+				others = [ {...} ], //objects similar to 'me'
+				target = {
+					x: 0,
+					y: 0
+				}
+			}
+		*/
+		pickTarget: function (arg) {
 
-			if (!updateTarget)
-				return currentTarget;
+			if (arg == null || arg == undefined) {
+				console.error(`pickTarget: arg cannot be null or undefined`);
+				return null;
+			}
 
-			console.dir(targets.superPellets);
+			try {
+				/*
+					update targets if:
+						- none has been set, or
+						- tracking enemies (they are probably moving every tick :), or
+						- target has been reached
+				*/
 
-			//just for testing
-			if (targets.superPellets.length > 0)
-				return targets.superPellets[Math.floor(Math.random() * targets.superPellets.length)];
-			else if (targets.pellets.length > 0)
-				return targets.pellets[Math.floor(Math.random() * targets.pellets.length)];
+				//var updateTarget = !arg.target || arg.me.isdangerous || mapUtil.getManhattanDistance(arg.target, arg.me) == 0; //no target set, or target reached
 
+				//if (!updateTarget)
+				//	return arg.target;
+
+				//if I am dangerous and there are non-dangerous enemies
+				//todo: refine: consider distance and remaining lethality of enemies
+				if (arg.me.isdangerous && _.findWhere(arg.others, { isdangerous: false }) != undefined) {
+
+					var closestNonDangerous;
+					for (var i = 0; i < arg.others.length; i++) {
+						var enemy = arg.others[i];
+						if (closestNonDangerous == undefined || mapUtil.getManhattanDistance(arg.me, enemy) < closestNonDangerous) {
+							closestNonDangerous = enemy;
+						}
+					}
+					return closestNonDangerous;
+				}
+
+				else if (targets.superPellets.length > 0) {
+					//pick the one closest to me
+					//todo: consider enemies
+					var closestSuperPellet;
+					for (var i = 0; i < targets.superPellets.length; i++) {
+						var pellet = targets.superPellets[i];
+						if (closestSuperPellet == undefined || mapUtil.getManhattanDistance(arg.me, pellet) < closestSuperPellet) {
+							closestSuperPellet = pellet;
+						}
+					}
+
+					return closestSuperPellet;
+				}
+				else if (targets.pellets.length > 0) {
+					//1. pick the one farthest away - by manhattan
+					//2. refine med clustering
+
+					var furthestPellet,
+						distanceToFurthestPellet;
+
+					for (var i = 0; i < targets.pellets.length; i++) {
+						var pellet = targets.pellets[i];
+						var distanceToPellet = mapUtil.getManhattanDistance(arg.me, pellet);
+						if (furthestAway == undefined || distanceToPellet > distanceToFurthestPellet) {
+							furthestPellet = pellet;
+							distanceToFurthestPellet = distanceToPellet;
+						}
+					}
+
+					return furthestPellet;
+				}
+			} catch (e) {
+				console.error(`pickTarget: ${e}`);
+			}
+			
 			return null;
 		},
 

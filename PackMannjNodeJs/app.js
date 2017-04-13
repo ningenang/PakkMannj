@@ -14,19 +14,25 @@
 	var currentTarget;
 
 	//helper method used for both 'welcome' and 'stateupdate' events
-	function sendNextMove(map, currentTile, targetTile) {
+	function sendNextMove(map, me, others, targetTile) {
 
 		//get the tile to move to using a*-algorithm
-		var nextTile = astar.getNextTile(map, currentTile, targetTile);
+		var nextTile = astar.getNextTile({
+			me: me,
+			others: others,
+			map: map,
+			target: targetTile
+		});
+
 		var nextMove;
 		if (nextTile !== undefined)
 		{
 			//translate to move command (up, down, left, right)
-			nextMove = navigator.translateToMoveCommand(currentTile, nextTile);
+			nextMove = navigator.translateToMoveCommand(me, nextTile);
 		}
 		else {
 			console.log('sendNextMove: unable to determine next tile! choosing direction at random!');
-			nextMove = navigator.getRandomValidMove(map, currentTile);
+			nextMove = navigator.getRandomValidMove(map, me);
 		}
 
 		client.sendString(nextMove);
@@ -37,14 +43,13 @@
 		console.time('process welcome');
 		navigator.updateTargets(data.map);
 
-		var startTile = {
-			x: data.you.x,
-			y: data.you.y
-		};
+		currentTarget = navigator.pickTarget({
+			me: data.you,
+			others: data.others,
+			target: currentTarget
+		});
 
-		currentTarget = navigator.pickTarget(startTile);
-
-		sendNextMove(data.map, startTile, currentTarget);
+		sendNextMove(data.map, data.you, data.others, currentTarget);
 
 		console.timeEnd('process welcome');
 	});
@@ -54,14 +59,13 @@
 
 		navigator.updateTargets(data.gamestate.map);
 
-		var currentTile = {
-			x: data.gamestate.you.x,
-			y: data.gamestate.you.y
-		};
+		currentTarget = navigator.pickTarget({
+			me: data.gamestate.you,
+			others: data.gamestate.others,
+			target: currentTarget
+		});
 
-		currentTarget = navigator.pickTarget(currentTile, currentTarget);
-
-		sendNextMove(data.gamestate.map, currentTile, currentTarget);
+		sendNextMove(data.gamestate.map, data.gamestate.you, data.gamestate.others, currentTarget);
 
 		console.timeEnd('process update');
 	});

@@ -8,20 +8,30 @@ module.exports.tileTypeEnum = Object.freeze({
 	WALL: '|',
 	PELLET: '.',
 	SUPER_PELLET: 'o'
-	//TODO?: add type for enemies (dangerous, non-dangerous
 });
+
+module.exports.getManhattanDistance = function (coord, target) {
+	var dx = Math.abs(coord.x - target.x);
+	var dy = Math.abs(coord.y - target.y);
+
+	//assume movement cost of 1
+	return 1 * (dx + dy);
+};
 
 module.exports.createNeighbourTiles = function (coord) {
 	return [
-		{ x: coord.x - 1,	y: coord.y },		//left
-		{ x: coord.x + 1,	y: coord.y },		//right
-		{ x: coord.x,		y: coord.y + 1 },	//down
-		{ x: coord.x,		y: coord.y - 1 }	//up
+		{ x: coord.x - 1, y: coord.y },		//left
+		{ x: coord.x + 1, y: coord.y },		//right
+		{ x: coord.x, y: coord.y + 1 },	//down
+		{ x: coord.x, y: coord.y - 1 }	//up
 	];
-}
+};
 
 
+//todo: treat enemies in same state as me as non-walkable
 module.exports.isWalkable = function (map, coord) {
+
+
 	//check that coordinate is within map bounds
 	if (coord.x > -1 && coord.y > -1 &&
 		map.width > coord.x && map.height > coord.y) {

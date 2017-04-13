@@ -4,27 +4,76 @@ var mapUtil = require('./maputil');
 
 var Astar = function Astar() {
 
-	//calculate simple Manhattan distance as the heuristic
+
 	function heuristic(coord, target) {
-		var dx = Math.abs(coord.x - target.x);
-		var dy = Math.abs(coord.y - target.y);
-
-		//assume movement cost of 1
-		return 1 * (dx + dy);
+		return mapUtil.getManhattanDistance(coord, target);
 	};
 
-	function moveCost(map, targetTile) {
-		return 1;
+	//todo: håndter shortcuts i kartet
+	function moveCost(arg, movingTo) {
+
+		//check if tile is within "safe" distance from dangerous enemies
+		//todo: consider remaining lethality ticks for both me and enemies
+		if (!arg.me.isdangerous) {
+			for (var i = 0; i < _.where(arg.others, { isdangerous: true }); i++) {
+				var enemy = arg.others[i];
+				var minDiffX = _.min([
+					Math.abs(arg.me.x - (enemy.x - 1)),
+					Math.abs(arg.me.x - (enemy.x + 1))
+				]);
+
+				var minDiffY = _.min([
+					Math.abs(arg.me.y - (enemy.y - 1)),
+					Math.abs(arg.me.y - (enemy.y + 1))
+				]);
+
+
+				if (minDiffX <= 2 && minDiffY <= 2) { //too close for comfort
+					return 1000 / (minDiffX + minDiffY); // avoid tile plz (weighted by proximity so as to enable retreat)
+				}
+			}
+		}
+
+
+		try {
+			var type = arg.map.content[movingTo.y][movingTo.x];
+			switch (type) {
+				case mapUtil.tileTypeEnum.PELLET:
+				case mapUtil.tileTypeEnum.SUPER_PELLET:
+					return 0;
+			}
+		} catch (e) {
+			console.log(`moveCost: failed to determine movement cost for (${movingTo.x}, ${movingTo.y})`);
+		}
+
+		return 10; //default: floor, door
 	};
-		
+
 	return {
 
-		getNextTile: function (map, coordStart, target) {
 
-			if (target === undefined || target === null) {
+		/*
+
+		arg = {
+			me: {}
+			others: [],
+			target: {},
+			map: {}
+		}
+		*/
+		getNextTile: function (arg) {
+
+			if (arg === undefined || arg === null) {
+				console.error('getNextTile: arg cannot be null or undefined');
+				return;
+			} else if (arg.target === undefined || arg.target === null) {
 				console.error('getNextTile: target cannot be null or undefined');
 				return;
 			}
+
+			var coordStart = arg.me;
+			var target = arg.target;
+			var map = arg.map;
 
 			console.log(`getNextTile: find next move from (${coordStart.x}, ${coordStart.y}) to (${target.x}, ${target.y})`);
 
@@ -71,12 +120,9 @@ var Astar = function Astar() {
 							&& mapUtil.isWalkable(map, neighbour);
 					})
 					.forEach(function (neighbour) {
-
-						//unsure about this!!
-
 						//total cost of moving to neighbour from starting point
 						//f(n) = g(n) + h(n)
-						var f = (current.cost + moveCost(map, neighbour)) + heuristic(neighbour, target);
+						var f = (current.cost + moveCost(arg, neighbour)) + heuristic(neighbour, target);
 
 						var existingIndex = frontier.findIndex(function (elem) {
 							return elem.x === neighbour.x && elem.y === neighbour.y;
@@ -105,7 +151,7 @@ var Astar = function Astar() {
 					current = current.parent;
 				}
 
-				if(moveToTile !== undefined)
+				if (moveToTile !== undefined)
 					console.log(`getNextTile: next tile (${moveToTile.x}, ${moveToTile.y})`)
 			}
 
