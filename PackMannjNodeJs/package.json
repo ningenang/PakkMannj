@@ -7,6 +7,7 @@
     "name": "Mats"
   },
   "dependencies": {
+    "commander": "^2.9.0",
     "shuffle-array": "^1.0.1",
     "underscore": "^1.8.3"
   }

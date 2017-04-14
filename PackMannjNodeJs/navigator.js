@@ -107,13 +107,14 @@ var Navigator = function Navigator() {
 					//1. pick the one farthest away - by manhattan
 					//2. refine med clustering
 
+					//todo: fix bug! takler ikke tie breaks!
 					var furthestPellet,
 						distanceToFurthestPellet;
 
 					for (var i = 0; i < targets.pellets.length; i++) {
 						var pellet = targets.pellets[i];
 						var distanceToPellet = mapUtil.getManhattanDistance(arg.me, pellet);
-						if (furthestAway == undefined || distanceToPellet > distanceToFurthestPellet) {
+						if (furthestPellet == undefined || distanceToPellet > distanceToFurthestPellet) {
 							furthestPellet = pellet;
 							distanceToFurthestPellet = distanceToPellet;
 						}
