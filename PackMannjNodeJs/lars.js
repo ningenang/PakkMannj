@@ -86,6 +86,11 @@
 		sendNextMove();
 
 		console.timeEnd('process update');
-	});
+    });
+
+
+    client.on('dead', function() {
+        console.log('RIP');
+    });
 
 })();

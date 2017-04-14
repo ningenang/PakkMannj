@@ -22,24 +22,17 @@ var Astar = function Astar() {
         //check if tile is within "safe" distance from dangerous enemies
         //todo: consider remaining lethality ticks for both me and enemies
         if (!arg.me.isdangerous) {
-            for (var i = 0; i < _.where(arg.others, { isdangerous: true }); i++) {
-                var enemy = arg.others[i];
 
-                //todo: diffx og diffy håndterer ikke at fienden er på andre siden av shortcut
+            var dangerous = _.where(arg.others, { isdangerous: true });
+            for (var i = 0; i < dangerous.length; i++) {
+                var enemy = dangerous[i];
 
-                var minDiffX = _.min([
-                    Math.abs(arg.me.x - (enemy.x - 1)),
-                    Math.abs(arg.me.x - (enemy.x + 1))
-                ]);
+                //todo: manhattan er ganske sloppy, og bryr seg ikke om vegger ol.
 
-                var minDiffY = _.min([
-                    Math.abs(arg.me.y - (enemy.y - 1)),
-                    Math.abs(arg.me.y - (enemy.y + 1))
-                ]);
-
-
-                if (minDiffX <= 2 && minDiffY <= 2) { //too close for comfort
-                    return 1000 / (minDiffX + minDiffY); // avoid tile plz (weighted by proximity so as to enable retreat)
+                var distance = mapUtil.getManhattanDistance(arg.me, enemy);
+                if (distance <= 2) { //too close for comfort
+                    console.log('panic!');
+                    return 1000 / distance; // avoid tile plz (weighted by proximity so as to enable retreat)
                 }
             }
         }
@@ -86,7 +79,7 @@ var Astar = function Astar() {
             var target = arg.target;
             var map = arg.map;
 
-            console.log(`getNextTile: find next move from (${coordStart.x}, ${coordStart.y}) to (${target.x}, ${target.y})`);
+            //console.log(`getNextTile: find next move from (${coordStart.x}, ${coordStart.y}) to (${target.x}, ${target.y})`);
 
             coordStart.cost = 0;
 
@@ -162,8 +155,8 @@ var Astar = function Astar() {
                     current = current.parent;
                 }
 
-                if (moveToTile !== undefined)
-                    console.log(`getNextTile: next tile (${moveToTile.x}, ${moveToTile.y})`)
+                //if (moveToTile !== undefined)
+                //    console.log(`getNextTile: next tile (${moveToTile.x}, ${moveToTile.y})`)
             }
 
             return moveToTile;
