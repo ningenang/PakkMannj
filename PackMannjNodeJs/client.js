@@ -28,10 +28,10 @@ var Client = function (host, port, botName) {
 					_this.emit(data['messagetype'], data);
 					break;
 				default:
-					console.error('Unrecognized message type: ' + data['messagetype']);
+					console.log('Unrecognized message type: ' + data['messagetype']);
 			}
 		} catch (e) {
-			console.error(`unable to parse data: ${e.message}`);
+			console.log(`unable to parse data: ${e.message}`);
 		}
 		
 	});

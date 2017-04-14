@@ -1,8 +1,5 @@
 'use strict';
 
-//todo: more (globally) accessible object with current game state
-
-
 //self-invoking function - avoid polluting global namespace
 (function _lars() {
 
@@ -22,7 +19,7 @@
 	var address = _commander.server.split(':');
 	if (address.length != 2)
 	{
-		console.error('invalid argument: server. must be on the form adress:port (e.g 127:0.0.1:54321)');
+		console.log('invalid argument: server. must be on the form adress:port (e.g 127:0.0.1:54321)');
 		return;
 	}
 
@@ -33,42 +30,41 @@
 	var currentTarget;
 
 	//helper method used for both 'welcome' and 'stateupdate' events
-	function sendNextMove(map, me, others, targetTile) {
+	function sendNextMove() {
 
 		//get the tile to move to using a*-algorithm
-		var nextTile = astar.getNextTile({
-			me: me,
-			others: others,
-			map: map,
-			target: targetTile
-		});
+		var nextTile = astar.getNextTile(exports.gamestate);
 
 		var nextMove;
 		if (nextTile !== undefined)
 		{
 			//translate to move command (up, down, left, right)
-			nextMove = navigator.translateToMoveCommand(me, nextTile);
+			nextMove = navigator.translateToMoveCommand(exports.gamestate.me, nextTile);
 		}
 		else {
 			console.log('sendNextMove: unable to determine next tile! choosing direction at random!');
-			nextMove = navigator.getRandomValidMove(map, me);
+            nextMove = navigator.getRandomValidMove(exports.gamestate.map, exports.gamestate.me);
 		}
 
 		client.sendString(nextMove);
 	}
 
-
 	client.on('welcome', function (data) {
 		console.time('process welcome');
 		navigator.updateTargets(data.map);
 
-		currentTarget = navigator.pickTarget({
+		var gamestate = {
+			map: data.map,
 			me: data.you,
-			others: data.others,
-			target: currentTarget
-		});
+			others: data.others
+		};
 
-		sendNextMove(data.map, data.you, data.others, currentTarget);
+		currentTarget = navigator.pickTarget(gamestate);
+        gamestate.target = currentTarget;
+
+        module.exports.gamestate = gamestate;
+
+		sendNextMove();
 
 		console.timeEnd('process welcome');
 	});
@@ -76,18 +72,20 @@
 	client.on('stateupdate', function (data) {
 		console.time('process update');
 
-		navigator.updateTargets(data.gamestate.map);
+        navigator.updateTargets(data.gamestate.map);
 
-		currentTarget = navigator.pickTarget({
-			me: data.gamestate.you,
-			others: data.gamestate.others,
-			target: currentTarget
-		});
+        module.exports.gamestate = {
+            map: data.gamestate.map,
+            me: data.gamestate.you,
+            others: data.gamestate.others,
+            target: currentTarget
+        };;
+		
+        currentTarget = navigator.pickTarget(exports.gamestate);
 
-		sendNextMove(data.gamestate.map, data.gamestate.you, data.gamestate.others, currentTarget);
+		sendNextMove();
 
 		console.timeEnd('process update');
 	});
 
 })();
-

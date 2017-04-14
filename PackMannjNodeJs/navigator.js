@@ -59,7 +59,7 @@ var Navigator = function Navigator() {
 		pickTarget: function (arg) {
 
 			if (arg == null || arg == undefined) {
-				console.error(`pickTarget: arg cannot be null or undefined`);
+				console.log(`pickTarget: arg cannot be null or undefined`);
 				return null;
 			}
 
@@ -71,10 +71,13 @@ var Navigator = function Navigator() {
 						- target has been reached
 				*/
 
-				//var updateTarget = !arg.target || arg.me.isdangerous || mapUtil.getManhattanDistance(arg.target, arg.me) == 0; //no target set, or target reached
+                var updateTarget = !arg.target ||
+                    arg.me.isdangerous ||
+                    mapUtil.getManhattanDistance(arg.target, arg.me) == 0 ||
+                    arg.map.content[arg.target.y][arg.target.x] == mapUtil.tileTypeEnum.FLOOR;
 
-				//if (!updateTarget)
-				//	return arg.target;
+				if (!updateTarget)
+					return arg.target;
 
 				//if I am dangerous and there are non-dangerous enemies
 				//todo: refine: consider distance and remaining lethality of enemies
@@ -104,17 +107,14 @@ var Navigator = function Navigator() {
 					return closestSuperPellet;
 				}
 				else if (targets.pellets.length > 0) {
-					//1. pick the one farthest away - by manhattan
-					//2. refine med clustering
+                    //return targets.pellets[Math.floor(Math.random() * targets.pellets.length)];
 
-					//todo: fix bug! takler ikke tie breaks!
-					var furthestPellet,
-						distanceToFurthestPellet;
-
+					var furthestPellet, distanceToFurthestPellet;
+						
 					for (var i = 0; i < targets.pellets.length; i++) {
 						var pellet = targets.pellets[i];
 						var distanceToPellet = mapUtil.getManhattanDistance(arg.me, pellet);
-						if (furthestPellet == undefined || distanceToPellet > distanceToFurthestPellet) {
+						if (!furthestPellet || distanceToPellet > distanceToFurthestPellet) {
 							furthestPellet = pellet;
 							distanceToFurthestPellet = distanceToPellet;
 						}
@@ -123,7 +123,7 @@ var Navigator = function Navigator() {
 					return furthestPellet;
 				}
 			} catch (e) {
-				console.error(`pickTarget: ${e}`);
+				console.log(`pickTarget: ${e}`);
 			}
 			
 			return null;

@@ -4,160 +4,171 @@ var mapUtil = require('./maputil');
 
 var Astar = function Astar() {
 
+    const defaultMoveCost = 10;
 
-	function heuristic(coord, target) {
-		return mapUtil.getManhattanDistance(coord, target);
-	};
+    function heuristic(arg, target) {
 
-	//todo: håndter shortcuts i kartet
-	function moveCost(arg, movingTo) {
+        //handle standing on the edge, and taking a shortcut to the other side
+        if (Math.abs(arg.me.x - target.x) == arg.map.width - 1 ||  //left-right shortcut
+            Math.abs(arg.me.y - target.y) == arg.map.height - 1) {
+            return defaultMoveCost;
+        }
 
-		//check if tile is within "safe" distance from dangerous enemies
-		//todo: consider remaining lethality ticks for both me and enemies
-		if (!arg.me.isdangerous) {
-			for (var i = 0; i < _.where(arg.others, { isdangerous: true }); i++) {
-				var enemy = arg.others[i];
-				var minDiffX = _.min([
-					Math.abs(arg.me.x - (enemy.x - 1)),
-					Math.abs(arg.me.x - (enemy.x + 1))
-				]);
-
-				var minDiffY = _.min([
-					Math.abs(arg.me.y - (enemy.y - 1)),
-					Math.abs(arg.me.y - (enemy.y + 1))
-				]);
+        return mapUtil.getManhattanDistance(arg.me, target);
+    };
 
 
-				if (minDiffX <= 2 && minDiffY <= 2) { //too close for comfort
-					return 1000 / (minDiffX + minDiffY); // avoid tile plz (weighted by proximity so as to enable retreat)
-				}
-			}
-		}
+    function moveCost(arg, movingTo) {
+        //check if tile is within "safe" distance from dangerous enemies
+        //todo: consider remaining lethality ticks for both me and enemies
+        if (!arg.me.isdangerous) {
+            for (var i = 0; i < _.where(arg.others, { isdangerous: true }); i++) {
+                var enemy = arg.others[i];
+
+                //todo: diffx og diffy håndterer ikke at fienden er på andre siden av shortcut
+
+                var minDiffX = _.min([
+                    Math.abs(arg.me.x - (enemy.x - 1)),
+                    Math.abs(arg.me.x - (enemy.x + 1))
+                ]);
+
+                var minDiffY = _.min([
+                    Math.abs(arg.me.y - (enemy.y - 1)),
+                    Math.abs(arg.me.y - (enemy.y + 1))
+                ]);
 
 
-		try {
-			var type = arg.map.content[movingTo.y][movingTo.x];
-			switch (type) {
-				case mapUtil.tileTypeEnum.PELLET:
-				case mapUtil.tileTypeEnum.SUPER_PELLET:
-					return 0;
-			}
-		} catch (e) {
-			console.log(`moveCost: failed to determine movement cost for (${movingTo.x}, ${movingTo.y})`);
-		}
+                if (minDiffX <= 2 && minDiffY <= 2) { //too close for comfort
+                    return 1000 / (minDiffX + minDiffY); // avoid tile plz (weighted by proximity so as to enable retreat)
+                }
+            }
+        }
 
-		return 10; //default: floor, door
-	};
+        
+        try {
+            var type = arg.map.content[movingTo.y][movingTo.x];
+            switch (type) {
+                case mapUtil.tileTypeEnum.PELLET:
+                case mapUtil.tileTypeEnum.SUPER_PELLET:
+                    return 0;
+            }
+        } catch (e) {
+            console.log(`moveCost: failed to determine movement cost for (${movingTo.x}, ${movingTo.y})`);
+        }
 
-	return {
+        return defaultMoveCost; //default: floor, door
+        
+    }
 
-
-		/*
-
-		arg = {
-			me: {}
-			others: [],
-			target: {},
-			map: {}
-		}
-		*/
-		getNextTile: function (arg) {
-
-			if (arg === undefined || arg === null) {
-				console.error('getNextTile: arg cannot be null or undefined');
-				return;
-			} else if (arg.target === undefined || arg.target === null) {
-				console.error('getNextTile: target cannot be null or undefined');
-				return;
-			}
-
-			var coordStart = arg.me;
-			var target = arg.target;
-			var map = arg.map;
-
-			console.log(`getNextTile: find next move from (${coordStart.x}, ${coordStart.y}) to (${target.x}, ${target.y})`);
-
-			coordStart.cost = 0;
-
-			var frontier = [coordStart];
-			var closed = [];
-
-			var current = {};
-
-			while (frontier.length > 0) {
-
-				var lowestValue = frontier[0].cost;
-				var ties = [frontier[0]];
-				//find the x tiles with the lowest cost
-				for (var i = 1; i < frontier.length; i++) {
-					if (frontier[i].cost === lowestValue)
-						ties.push(frontier[i]);
-					else
-						break;
-				}
-
-				if (ties.length === 1) {
-					current = frontier.shift();
-				} else {
-					//select randomly among tiles if more than one with lowest cost
-					var rndIndex = Math.floor(Math.random() * ties.length);
-					current = frontier.splice(rndIndex, 1)[0];
-				}
-
-				if (current.x === target.x && current.y === target.y)
-					break;
-
-				closed.push(current);
+    return {
 
 
-				mapUtil
-					//process neighbours
-					.createNeighbourTiles(current)
-					//check all neighbours that are not already processed
-					//must also be within map bounds and walkable
-					.filter(function (neighbour) {
-						return _.findWhere(closed, { x: neighbour.x, y: neighbour.y }) === undefined
-							&& mapUtil.isWalkable(map, neighbour);
-					})
-					.forEach(function (neighbour) {
-						//total cost of moving to neighbour from starting point
-						//f(n) = g(n) + h(n)
-						var f = (current.cost + moveCost(arg, neighbour)) + heuristic(neighbour, target);
+        /*
+ 
+        arg = {
+            me: {}
+            others: [],
+            target: {},
+            map: {}
+        }
+        */
+        getNextTile: function(arg) {
 
-						var existingIndex = frontier.findIndex(function (elem) {
-							return elem.x === neighbour.x && elem.y === neighbour.y;
-						});
+            if (arg === undefined || arg === null) {
+                console.log('getNextTile: arg cannot be null or undefined');
+                return;
+            } else if (arg.target === undefined || arg.target === null) {
+                console.log('getNextTile: target cannot be null or undefined');
+                return;
+            }
 
-						if (existingIndex > -1) {
-							if (frontier[existingIndex].cost > f) {
-								frontier[existingIndex].cost = f
-								frontier[existingIndex].parent = current;
-							}
-						} else {
-							neighbour.cost = f;
-							neighbour.parent = current;
-							frontier.push(neighbour);
-						}
-					});
+            var coordStart = arg.me;
+            var target = arg.target;
+            var map = arg.map;
 
-				frontier.sort(function (a, b) { return a.cost - b.cost; });
+            console.log(`getNextTile: find next move from (${coordStart.x}, ${coordStart.y}) to (${target.x}, ${target.y})`);
 
-			}
+            coordStart.cost = 0;
 
-			var moveToTile;
-			if (current.x === target.x && current.y === target.y) {
-				while (current !== undefined && current.parent !== undefined) {
-					moveToTile = current;
-					current = current.parent;
-				}
+            var frontier = [coordStart];
+            var closed = [];
 
-				if (moveToTile !== undefined)
-					console.log(`getNextTile: next tile (${moveToTile.x}, ${moveToTile.y})`)
-			}
+            var current = {};
 
-			return moveToTile;
-		}
-	}
+            while (frontier.length > 0) {
+
+                var lowestValue = frontier[0].cost;
+                var ties = [frontier[0]];
+                //find the x tiles with the lowest cost
+                for (var i = 1; i < frontier.length; i++) {
+                    if (frontier[i].cost === lowestValue)
+                        ties.push(frontier[i]);
+                    else
+                        break;
+                }
+
+                if (ties.length === 1) {
+                    current = frontier.shift();
+                } else {
+                    //select randomly among tiles if more than one with lowest cost
+                    var rndIndex = Math.floor(Math.random() * ties.length);
+                    current = frontier.splice(rndIndex, 1)[0];
+                }
+
+                if (current.x === target.x && current.y === target.y)
+                    break;
+
+                closed.push(current);
+
+
+                mapUtil
+                    //process neighbours
+                    .createNeighbourTiles(current)
+                    //check all neighbours that are not already processed
+                    //must also be within map bounds and walkable
+                    .filter(function(neighbour) {
+                        return _.findWhere(closed, { x: neighbour.x, y: neighbour.y }) === undefined
+                            && mapUtil.isWalkable(map, neighbour);
+                    })
+                    .forEach(function(neighbour) {
+                        //total cost of moving to neighbour from starting point
+                        //f(n) = g(n) + h(n)
+                        var f = (current.cost + moveCost(arg, neighbour)) + heuristic(arg, neighbour);
+
+                        var existingIndex = frontier.findIndex(function(elem) {
+                            return elem.x === neighbour.x && elem.y === neighbour.y;
+                        });
+
+                        if (existingIndex > -1) {
+                            if (frontier[existingIndex].cost > f) {
+                                frontier[existingIndex].cost = f
+                                frontier[existingIndex].parent = current;
+                            }
+                        } else {
+                            neighbour.cost = f;
+                            neighbour.parent = current;
+                            frontier.push(neighbour);
+                        }
+                    });
+
+                frontier.sort(function(a, b) { return a.cost - b.cost; });
+
+            }
+
+            var moveToTile;
+            if (current.x === target.x && current.y === target.y) {
+                while (current !== undefined && current.parent !== undefined) {
+                    moveToTile = current;
+                    current = current.parent;
+                }
+
+                if (moveToTile !== undefined)
+                    console.log(`getNextTile: next tile (${moveToTile.x}, ${moveToTile.y})`)
+            }
+
+            return moveToTile;
+        }
+    }
 };
 
 module.exports = Astar;
