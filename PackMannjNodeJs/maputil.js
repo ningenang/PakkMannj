@@ -12,12 +12,68 @@ module.exports.tileTypeEnum = Object.freeze({
     SUPER_PELLET: 'o'
 });
 
-module.exports.getManhattanDistance = function(coord, target) {
-    var dx = Math.abs(coord.x - target.x);
-    var dy = Math.abs(coord.y - target.y);
+module.exports.discoverShortcuts = function (map) {
+	var _shortcuts = [];
 
-    //assume movement cost of 1
-    return 1 * (dx + dy);
+	map.content.forEach(function (row, rowIndex) {
+		for (var i = 0; i < row.length; i++) {
+
+			//shortcut: if on an edge, and it's not a wall
+			if (rowIndex == 0 || rowIndex == map.content.length - 1 || i == 0 || i == row.length - 1) {
+				if (map.content[rowIndex][i] !== _this.tileTypeEnum.WALL) {
+
+					var shortcut = {
+						entry: {
+							x: i,
+							y: rowIndex
+						}
+					};
+
+					var exit = { x: i, y: rowIndex }; //initialize to same x/y as entry
+
+					if (i == 0)
+						exit.x = row.length - 1;
+					else if (i == row.length - 1)
+						exit.x = 0
+
+					if (rowIndex == 0)
+						exit.y = map.content.length - 1;
+					else if (rowIndex == map.content.length - 1)
+						exit.y = 0;
+
+					shortcut.exit = exit;
+
+					_shortcuts.push(shortcut);
+				}
+			}
+		}
+	});
+
+	state.gamestate.shortcuts = _shortcuts;
+};
+
+module.exports.getManhattanDistance = function(coord, target) {
+
+
+    function diff(a, b) {
+        var dx = Math.abs(a.x - b.x);
+        var dy = Math.abs(a.y - b.y);
+
+        //assume movement cost of 1
+        return 1 * (dx + dy);
+    }
+
+    var shortestPath = diff(coord, target);
+
+    for (var i = 0; i < state.gamestate.shortcuts.length; i++) {
+
+		var estimate = diff(coord, state.gamestate.shortcuts[i].entry) + diff(state.gamestate.shortcuts[i].exit, target);
+		//distance from current to shortcut + other side of shortcut to target
+        if (estimate < shortestPath)
+            shortestPath = estimate;
+    }
+
+    return shortestPath;
 };
 
 module.exports.createNeighbourTiles = function(coord) {

@@ -8,6 +8,7 @@
 	var _client = require('./client.js');
 	var _astar = require('./astar.js');
 	var _navigator = require('./navigator');
+	var _maputil = require('./maputil.js');
 
 	_commander
 		.version('0.0.1')
@@ -25,7 +26,7 @@
 
 	var client = new _client(address[0], address[1], _commander.nick);
 	var astar = new _astar();
-	var navigator = new _navigator();
+    var navigator = new _navigator();
 
 	var currentTarget;
 
@@ -51,14 +52,18 @@
 
 	client.on('welcome', function (data) {
 		console.time('process welcome');
-		navigator.updateTargets(data.map);
-
+        navigator.updatePOI(data.map);
+		
 		var gamestate = {
 			map: data.map,
 			me: data.you,
 			others: data.others
-		};
+        };
 
+		module.exports.gamestate = gamestate;
+
+		_maputil.discoverShortcuts(data.map);
+        
 		currentTarget = navigator.pickTarget(gamestate);
         gamestate.target = currentTarget;
 
@@ -70,22 +75,20 @@
 	});
 
 	client.on('stateupdate', function (data) {
-		console.time('process update');
+		//console.time('process update');
 
-        navigator.updateTargets(data.gamestate.map);
+        navigator.updatePOI(data.gamestate.map);
 
-        module.exports.gamestate = {
-            map: data.gamestate.map,
-            me: data.gamestate.you,
-            others: data.gamestate.others,
-            target: currentTarget
-        };;
+		module.exports.gamestate.map = data.gamestate.map;
+		module.exports.gamestate.me = data.gamestate.you;
+		module.exports.gamestate.others = data.gamestate.others;
+		module.exports.gamestate.target = currentTarget;
 		
         currentTarget = navigator.pickTarget(exports.gamestate);
 
 		sendNextMove();
 
-		console.timeEnd('process update');
+		//console.timeEnd('process update');
     });
 
 

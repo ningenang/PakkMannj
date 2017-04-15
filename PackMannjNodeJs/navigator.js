@@ -1,25 +1,27 @@
 ﻿
 var _ = require('underscore');
 var shuffle = require('shuffle-array');
+
 var mapUtil = require('./maputil');
 
 var Navigator = function Navigator() {
 
 	var targets = {
 		superPellets: [],
-		pellets: []
+        pellets: []
 	};
-	
-	return {
 
-		updateTargets: function (map) {
+    return {
+		
+		updatePOI: function (map) {
 
 			targets.superPellets = [];
-			targets.pellets = [];
+            targets.pellets = [];
 
 			map.content.forEach(function (row, rowIndex) {
 				for (var i = 0; i < row.length; i++) {
-					if (row[i] === mapUtil.tileTypeEnum.SUPER_PELLET) {
+
+                    if (row[i] === mapUtil.tileTypeEnum.SUPER_PELLET) {
 						targets.superPellets.push(
 							{
 								x: i,
@@ -34,7 +36,7 @@ var Navigator = function Navigator() {
 								y: rowIndex
 							}
 						);
-					}
+                    }
 				}
 			});
 		},
@@ -78,7 +80,6 @@ var Navigator = function Navigator() {
 
 				if (!updateTarget)
 					return arg.target;
-
 				//if I am dangerous and there are non-dangerous enemies
 				//todo: refine: consider distance and remaining lethality of enemies
 				if (arg.me.isdangerous && _.findWhere(arg.others, { isdangerous: false }) != undefined) {
