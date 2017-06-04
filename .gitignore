@@ -260,3 +260,8 @@ paket-files/
 __pycache__/
 *.pyc
 /PakkMannj
+/Test/Test.njsproj
+/Test/README.md
+/Test/package.json
+/Test/app.js
+/Test
